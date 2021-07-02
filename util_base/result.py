@@ -1,14 +1,15 @@
 import datetime
 
-from util_base.db import get_db_conn, update_data
+from util_base.db import update_data, get_multi_data
 
 
 class Result:
-    def __init__(self):
-        self.db_conn = get_db_conn()
+    def __init__(self, db_conn):
+        self.db_conn = db_conn
 
     def __del__(self):
-        self.db_conn.close()
+        # self.db_conn.close()
+        pass
 
     def insert_strategy_result_data(self, ts_code, main_ts_code, strategy_code, freq_code, bs_flag, date):
         sql = """
@@ -18,6 +19,16 @@ class Result:
         args = {"ts_code": ts_code, "main_ts_code": main_ts_code, "strategy_code": strategy_code, "freq_code": freq_code, "bs_flag": bs_flag, "date": date,
                 "update_date": datetime.datetime.now()}
         result = update_data(self.db_conn, sql, args)
+
+        return result
+
+    def get_strategy_result_data(self, strategy_code, date):
+        sql = """
+        select ts_code, main_ts_code, strategy_code, freq_code, bs_flag from strategy_result
+        where strategy_code=%(strategy_code)s and date=%(date)s
+        """
+        args = {"strategy_code": strategy_code, "date": date}
+        result = get_multi_data(self.db_conn, sql, args)
 
         return result
 

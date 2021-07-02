@@ -1,12 +1,13 @@
-from util_base.db import (get_boolean_value, get_db_conn, get_multi_data, get_single_value)
+from util_base.db import (get_boolean_value, get_multi_data, get_single_value)
 
 
 class BasicInfo:
-    def __init__(self):
-        self.db_conn = get_db_conn()
+    def __init__(self, db_conn):
+        self.db_conn = db_conn
 
     def __del__(self):
-        self.db_conn.close()
+        # self.db_conn.close()
+        pass
 
     def get_active_ts_code(self):
         sql = """

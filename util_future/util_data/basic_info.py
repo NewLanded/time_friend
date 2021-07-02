@@ -4,16 +4,17 @@ from itertools import count
 from fastapi import HTTPException, status
 
 from config import TRADE_CODE_LIST
-from util_base.db import (get_boolean_value, get_db_conn, get_multi_data,
+from util_base.db import (get_boolean_value, get_multi_data,
                           get_single_value)
 
 
 class BasicInfo:
-    def __init__(self):
-        self.db_conn = get_db_conn()
+    def __init__(self, db_conn):
+        self.db_conn = db_conn
 
     def __del__(self):
-        self.db_conn.close()
+        # self.db_conn.close()
+        pass
 
     def get_ts_code_by_main_ts_code_with_date(self, main_ts_code, start_date, end_date):
         sql = """

@@ -3,6 +3,7 @@ import datetime
 import talib
 
 from util_base.constant import FreqCode
+from util_base.db import get_db_conn
 from util_future.util_data.basic_info import BasicInfo
 from util_base.result import Result
 from util_future.util_module.point_module import get_main_code_interval_point_data_by_freq_code, get_ts_code_interval_point_data_by_freq_code
@@ -43,48 +44,54 @@ def buy(security_point_data, data_num, max_hist_value, std_value):
 
 
 def start(date_now=None):
-    date_now = datetime.date.today() if date_now is None else date_now
-    if BasicInfo().is_trade_day(date_now):
-        start_date, end_date = date_now - datetime.timedelta(days=100), date_now
-        ts_code_list = BasicInfo().get_active_ts_code(date_now)
-        for ts_code in ts_code_list:
-            try:
-                security_point_data = get_ts_code_interval_point_data_by_freq_code(ts_code, start_date, end_date, FreqCode("D"))
-                buy_flag = buy(security_point_data, 20, 5, 5)
-                if buy_flag is True:
-                    Result().insert_strategy_result_data(ts_code, ts_code, "future_smooth_macd", "D", "B", date_now)
-            except Exception as e:
-                Result().store_failed_message(ts_code, "future_smooth_macd", str(e), date_now)
-
-        start_date, end_date = date_now - datetime.timedelta(days=365), date_now
-        if BasicInfo().get_next_trade_day(date_now) != date_now + datetime.timedelta(days=1):
+    try:
+        db_conn = get_db_conn()
+        date_now = datetime.date.today() if date_now is None else date_now
+        if BasicInfo(db_conn).is_trade_day(date_now):
+            start_date, end_date = date_now - datetime.timedelta(days=100), date_now
+            ts_code_list = BasicInfo(db_conn).get_active_ts_code(date_now)
             for ts_code in ts_code_list:
                 try:
-                    security_point_data = get_main_code_interval_point_data_by_freq_code(ts_code, start_date, end_date, FreqCode("W"))
-                    buy_flag = buy(security_point_data, 13, 5, 5)
+                    security_point_data = get_ts_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date, FreqCode("D"))
+                    buy_flag = buy(security_point_data, 20, 5, 5)
                     if buy_flag is True:
-                        Result().insert_strategy_result_data(ts_code, "main", "future_smooth_macd", "W", "B", date_now)
+                        Result(db_conn).insert_strategy_result_data(ts_code, ts_code, "future_smooth_macd", "D", "B", date_now)
                 except Exception as e:
-                    Result().store_failed_message(ts_code, "future_smooth_macd", str(e), date_now)
+                    Result(db_conn).store_failed_message(ts_code, "future_smooth_macd", str(e), date_now)
 
-                try:
-                    security_point_data = get_ts_code_interval_point_data_by_freq_code(ts_code, start_date, end_date, FreqCode("W"))
-                    buy_flag = buy(security_point_data, 13, 5, 5)
-                    if buy_flag is True:
-                        Result().insert_strategy_result_data(ts_code, ts_code, "future_smooth_macd", "W", "B", date_now)
-                except Exception as e:
-                    Result().store_failed_message(ts_code, "future_smooth_macd", str(e), date_now)
+            start_date, end_date = date_now - datetime.timedelta(days=365), date_now
+            if BasicInfo(db_conn).get_next_trade_day(date_now) != date_now + datetime.timedelta(days=1):
+                for ts_code in ts_code_list:
+                    try:
+                        security_point_data = get_main_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date, FreqCode("W"))
+                        buy_flag = buy(security_point_data, 13, 5, 5)
+                        if buy_flag is True:
+                            Result(db_conn).insert_strategy_result_data(ts_code, "main", "future_smooth_macd", "W", "B", date_now)
+                    except Exception as e:
+                        Result(db_conn).store_failed_message(ts_code, "future_smooth_macd", str(e), date_now)
 
-        start_date, end_date = date_now - datetime.timedelta(days=3650), date_now
-        if BasicInfo().get_next_trade_day(date_now).month != date_now.month:
-            for ts_code in ts_code_list:
-                try:
-                    security_point_data = get_main_code_interval_point_data_by_freq_code(ts_code, start_date, end_date, FreqCode("M"))
-                    buy_flag = buy(security_point_data, 13, 5, 5)
-                    if buy_flag is True:
-                        Result().insert_strategy_result_data(ts_code, "main", "future_smooth_macd", "M", "B", date_now)
-                except Exception as e:
-                    Result().store_failed_message(ts_code, "future_smooth_macd", str(e), date_now)
+                    try:
+                        security_point_data = get_ts_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date, FreqCode("W"))
+                        buy_flag = buy(security_point_data, 13, 5, 5)
+                        if buy_flag is True:
+                            Result(db_conn).insert_strategy_result_data(ts_code, ts_code, "future_smooth_macd", "W", "B", date_now)
+                    except Exception as e:
+                        Result(db_conn).store_failed_message(ts_code, "future_smooth_macd", str(e), date_now)
+
+            start_date, end_date = date_now - datetime.timedelta(days=3650), date_now
+            if BasicInfo(db_conn).get_next_trade_day(date_now).month != date_now.month:
+                for ts_code in ts_code_list:
+                    try:
+                        security_point_data = get_main_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date, FreqCode("M"))
+                        buy_flag = buy(security_point_data, 13, 5, 5)
+                        if buy_flag is True:
+                            Result(db_conn).insert_strategy_result_data(ts_code, "main", "future_smooth_macd", "M", "B", date_now)
+                    except Exception as e:
+                        Result(db_conn).store_failed_message(ts_code, "future_smooth_macd", str(e), date_now)
+    except Exception as e:
+        pass
+    finally:
+        db_conn.close()
 
 
 if __name__ == "__main__":

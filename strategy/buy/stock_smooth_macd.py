@@ -3,6 +3,7 @@ import datetime
 import talib
 
 from util_base.constant import FreqCode
+from util_base.db import get_db_conn
 from util_base.result import Result
 from util_stock.util_data.basic_info import BasicInfo
 from util_stock.util_module.point_module import get_ts_code_interval_point_data_by_freq_code
@@ -42,21 +43,39 @@ def buy(security_point_data, data_num, max_hist_value, std_value):
 
 
 def start(date_now=None):
-    date_now = datetime.date.today() if date_now is None else date_now
-    if BasicInfo().is_trade_day(date_now):
-        start_date, end_date = date_now - datetime.timedelta(days=3650), date_now
-        if BasicInfo().get_next_trade_day(date_now).month != date_now.month:
-            ts_code_list = BasicInfo().get_active_ts_code()
-            for ts_code in ts_code_list:
-                try:
-                    security_point_data = get_ts_code_interval_point_data_by_freq_code(ts_code, start_date, end_date, FreqCode("M"))
-                    buy_flag = buy(security_point_data, 20, 55, 24)
-                    if buy_flag is True:
-                        Result().insert_strategy_result_data(ts_code, ts_code, "stock_smooth_macd", "M", "B", date_now)
-                except Exception as e:
-                    Result().store_failed_message(ts_code, "stock_smooth_macd", str(e), date_now)
+    try:
+        db_conn = get_db_conn()
+        date_now = datetime.date.today() if date_now is None else date_now
+        if BasicInfo(db_conn).is_trade_day(date_now):
+            ts_code_list = BasicInfo(db_conn).get_active_ts_code()
+
+            start_date, end_date = date_now - datetime.timedelta(days=3650), date_now
+            if BasicInfo(db_conn).get_next_trade_day(date_now).month != date_now.month:
+                for ts_code in ts_code_list:
+                    try:
+                        security_point_data = get_ts_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date, FreqCode("M"))
+                        buy_flag = buy(security_point_data, 20, 55, 24)
+                        if buy_flag is True:
+                            Result(db_conn).insert_strategy_result_data(ts_code, ts_code, "stock_smooth_macd", "M", "B", date_now)
+                    except Exception as e:
+                        Result(db_conn).store_failed_message(ts_code, "stock_smooth_macd", str(e), date_now)
+
+            start_date, end_date = date_now - datetime.timedelta(days=365), date_now
+            if BasicInfo(db_conn).get_next_trade_day(date_now) != date_now + datetime.timedelta(days=1):
+                for ts_code in ts_code_list:
+                    try:
+                        security_point_data = get_ts_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date, FreqCode("W"))
+                        buy_flag = buy(security_point_data, 20, 55, 24)
+                        if buy_flag is True:
+                            Result(db_conn).insert_strategy_result_data(ts_code, ts_code, "stock_smooth_macd", "W", "B", date_now)
+                    except Exception as e:
+                        Result(db_conn).store_failed_message(ts_code, "stock_smooth_macd", str(e), date_now)
+    except Exception as e:
+        pass
+    finally:
+        db_conn.close()
 
 
 if __name__ == "__main__":
-    # start(datetime.date(2020, 1, 23))
-    start()
+    start(datetime.date(2021, 6, 30))
+    # start()

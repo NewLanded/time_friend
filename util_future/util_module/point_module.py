@@ -3,9 +3,9 @@ from util_base.date_util import (adjust_interval_all_date_list_by_exists_date,
 from util_future.util_data.point_data import PointData
 
 
-def get_main_code_interval_point_data_by_freq_code(ts_code, start_date, end_date, freq_code):
+def get_main_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date, freq_code):
     interval_date_list = get_interval_date_list_by_freq_code(start_date, end_date, freq_code)
-    interval_point_data = PointData().get_future_interval_point_data_by_main_code(ts_code, interval_date_list[0][0], interval_date_list[-1][-1])
+    interval_point_data = PointData(db_conn).get_future_interval_point_data_by_main_code(ts_code, interval_date_list[0][0], interval_date_list[-1][-1])
     interval_date_list = adjust_interval_all_date_list_by_exists_date(interval_date_list, list(interval_point_data['trade_date'].values))
 
     groupby_index = []
@@ -27,9 +27,9 @@ def get_main_code_interval_point_data_by_freq_code(ts_code, start_date, end_date
     return interval_point_data
 
 
-def get_ts_code_interval_point_data_by_freq_code(ts_code, start_date, end_date, freq_code):
+def get_ts_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date, freq_code):
     interval_date_list = get_interval_date_list_by_freq_code(start_date, end_date, freq_code)
-    interval_point_data = PointData().get_future_interval_point_data(ts_code, interval_date_list[0][0], interval_date_list[-1][-1])
+    interval_point_data = PointData(db_conn).get_future_interval_point_data(ts_code, interval_date_list[0][0], interval_date_list[-1][-1])
     interval_date_list = adjust_interval_all_date_list_by_exists_date(interval_date_list, list(interval_point_data['trade_date'].values))
 
     groupby_index = []
@@ -51,9 +51,9 @@ def get_ts_code_interval_point_data_by_freq_code(ts_code, start_date, end_date, 
     return interval_point_data
 
 
-def get_ts_code_interval_holding_data(ts_code, start_date, end_date):
+def get_ts_code_interval_holding_data(db_conn, ts_code, start_date, end_date):
     """获取持仓"""
-    interval_holding_data_ori = PointData().get_ts_code_interval_holding_data(ts_code, start_date, end_date)
+    interval_holding_data_ori = PointData(db_conn).get_ts_code_interval_holding_data(ts_code, start_date, end_date)
 
     interval_holding_data = {}
     for date, date_value in interval_holding_data_ori.items():
@@ -70,9 +70,9 @@ def get_ts_code_interval_holding_data(ts_code, start_date, end_date):
     return interval_holding_data
 
 
-def get_ts_code_interval_pure_holding_data(ts_code, start_date, end_date):
+def get_ts_code_interval_pure_holding_data(db_conn, ts_code, start_date, end_date):
     """获取净持仓"""
-    interval_holding_data_ori = PointData().get_ts_code_interval_holding_data(ts_code, start_date, end_date)
+    interval_holding_data_ori = PointData(db_conn).get_ts_code_interval_holding_data(ts_code, start_date, end_date)
 
     interval_holding_data = {}
     for date, date_value in interval_holding_data_ori.items():

@@ -3,9 +3,9 @@ from util_base.date_util import (adjust_interval_all_date_list_by_exists_date,
 from util_stock.util_data.point_data import PointData
 
 
-def get_ts_code_interval_point_data_by_freq_code(ts_code, start_date, end_date, freq_code):
+def get_ts_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date, freq_code):
     interval_date_list = get_interval_date_list_by_freq_code(start_date, end_date, freq_code)
-    interval_point_data = PointData().get_future_interval_point_data(ts_code, interval_date_list[0][0], interval_date_list[-1][-1])
+    interval_point_data = PointData(db_conn).get_future_interval_point_data(ts_code, interval_date_list[0][0], interval_date_list[-1][-1])
     interval_date_list = adjust_interval_all_date_list_by_exists_date(interval_date_list, list(interval_point_data['trade_date'].values))
 
     groupby_index = []
