@@ -6,7 +6,8 @@ from util_base.constant import FreqCode
 from util_base.db import get_db_conn
 from util_future.util_data.basic_info import BasicInfo
 from util_base.result import Result
-from util_future.util_module.point_module import get_main_code_interval_point_data_by_freq_code, get_ts_code_interval_point_data_by_freq_code
+from util_future.util_module.point_module import get_main_code_interval_point_data_by_freq_code, \
+    get_ts_code_interval_point_data_by_freq_code
 
 
 def buy(security_point_data, data_num, max_hist_value, std_value):
@@ -31,14 +32,28 @@ def buy(security_point_data, data_num, max_hist_value, std_value):
             hist = hist.iloc[-data_num:]
             if (abs(hist) < max_hist_value).all():
                 std = hist.std(ddof=1)
-                # 使用 玻璃, datetime.date(2021, 4, 13)为结束日, 25天数据, 计算出来标准差为3.7, 把范围设置大一点, 设置成5把
-                # 周线的数据, 可能会比日线波动大一些, 但是暂时不考虑
                 if std <= std_value:
                     # 快线慢线互穿
                     if (macd.iloc[-2] >= signal.iloc[-2] and macd.iloc[-1] <= signal.iloc[-1]) or (
                             macd.iloc[-2] <= signal.iloc[-2] and macd.iloc[-1] >= signal.iloc[-1]):
                         # print(std)
                         return True
+
+    return False
+
+
+def buy_month(security_point_data):
+    if not security_point_data.empty:
+        benm_rate = security_point_data['close'].iloc[0] / 1000  # 基准倍数, 使每个品种的价格基准趋于一致
+        security_point_data['close'] = security_point_data['close'] / benm_rate
+
+        macd, signal, hist = talib.MACD(security_point_data['close'], fastperiod=12, slowperiod=26, signalperiod=9)
+        hist.dropna(inplace=True)
+        if not hist.empty:
+            if (macd.iloc[-2] >= signal.iloc[-2] and macd.iloc[-1] <= signal.iloc[-1]) or (
+                    macd.iloc[-2] <= signal.iloc[-2] and macd.iloc[-1] >= signal.iloc[-1]):
+                # print(std)
+                return True
 
     return False
 
@@ -52,8 +67,10 @@ def start(date_now=None):
             ts_code_list = BasicInfo(db_conn).get_active_ts_code(date_now)
             for ts_code in ts_code_list:
                 try:
-                    security_point_data = get_ts_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date, FreqCode("D"))
-                    buy_flag = buy(security_point_data, 20, 5, 5)
+                    security_point_data = get_ts_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date,
+                                                                                       FreqCode("D"))
+                    # 使用 玻璃, datetime.date(2021, 4, 13)为结束日, 20天数据, 计算出来标准差为1.5, hist最大值是4
+                    buy_flag = buy(security_point_data, 20, 5, 2.5)
                     if buy_flag is True:
                         Result(db_conn).insert_strategy_result_data(ts_code, ts_code, "future_smooth_macd", "D", "B", date_now)
                 except Exception as e:
@@ -63,27 +80,32 @@ def start(date_now=None):
             if BasicInfo(db_conn).get_next_trade_day(date_now) != date_now + datetime.timedelta(days=1):
                 for ts_code in ts_code_list:
                     try:
-                        security_point_data = get_main_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date, FreqCode("W"))
-                        buy_flag = buy(security_point_data, 13, 5, 5)
+                        security_point_data = get_main_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date,
+                                                                                             FreqCode("W"))
+                        # 使用 纸浆, datetime.date(2020, 11, 13)为结束日, 20天数据, 计算出来标准差为4.3, hist最大值是10.9
+                        buy_flag = buy(security_point_data, 20, 15, 6)
                         if buy_flag is True:
                             Result(db_conn).insert_strategy_result_data(ts_code, "main", "future_smooth_macd", "W", "B", date_now)
                     except Exception as e:
                         Result(db_conn).store_failed_message(ts_code, "future_smooth_macd", str(e), date_now)
 
                     try:
-                        security_point_data = get_ts_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date, FreqCode("W"))
+                        security_point_data = get_ts_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date,
+                                                                                           FreqCode("W"))
                         buy_flag = buy(security_point_data, 13, 5, 5)
                         if buy_flag is True:
                             Result(db_conn).insert_strategy_result_data(ts_code, ts_code, "future_smooth_macd", "W", "B", date_now)
                     except Exception as e:
                         Result(db_conn).store_failed_message(ts_code, "future_smooth_macd", str(e), date_now)
 
-            start_date, end_date = date_now - datetime.timedelta(days=3650), date_now
+            start_date, end_date = date_now - datetime.timedelta(days=1500), date_now
             if BasicInfo(db_conn).get_next_trade_day(date_now).month != date_now.month:
                 for ts_code in ts_code_list:
                     try:
-                        security_point_data = get_main_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date, FreqCode("M"))
-                        buy_flag = buy(security_point_data, 13, 5, 5)
+                        security_point_data = get_main_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date,
+                                                                                             FreqCode("M"))
+                        # 指示方向, 月线波动太大, 开仓危险
+                        buy_flag = buy_month(security_point_data)
                         if buy_flag is True:
                             Result(db_conn).insert_strategy_result_data(ts_code, "main", "future_smooth_macd", "M", "B", date_now)
                     except Exception as e:
@@ -95,4 +117,4 @@ def start(date_now=None):
 
 
 if __name__ == "__main__":
-    start(datetime.date(2021, 4, 16))
+    start(datetime.date(2021, 7, 2))

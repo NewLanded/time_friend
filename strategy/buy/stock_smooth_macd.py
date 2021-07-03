@@ -34,9 +34,8 @@ def buy(security_point_data, data_num, max_hist_value, std_value):
                 std = hist.std(ddof=1)
                 if std <= std_value:
                     # 快线慢线互穿
-                    if (macd.iloc[-2] >= signal.iloc[-2] and macd.iloc[-1] <= signal.iloc[-1]) or (
-                            macd.iloc[-2] <= signal.iloc[-2] and macd.iloc[-1] >= signal.iloc[-1]):
-                        # print(std)
+                    if macd.iloc[-2] <= signal.iloc[-2] and macd.iloc[-1] >= signal.iloc[-1]:
+                        print(std)
                         return True
 
     return False
@@ -53,21 +52,11 @@ def start(date_now=None):
             if BasicInfo(db_conn).get_next_trade_day(date_now).month != date_now.month:
                 for ts_code in ts_code_list:
                     try:
-                        security_point_data = get_ts_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date, FreqCode("M"))
+                        security_point_data = get_ts_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date,
+                                                                                           FreqCode("M"))
                         buy_flag = buy(security_point_data, 20, 55, 24)
                         if buy_flag is True:
                             Result(db_conn).insert_strategy_result_data(ts_code, ts_code, "stock_smooth_macd", "M", "B", date_now)
-                    except Exception as e:
-                        Result(db_conn).store_failed_message(ts_code, "stock_smooth_macd", str(e), date_now)
-
-            start_date, end_date = date_now - datetime.timedelta(days=365), date_now
-            if BasicInfo(db_conn).get_next_trade_day(date_now) != date_now + datetime.timedelta(days=1):
-                for ts_code in ts_code_list:
-                    try:
-                        security_point_data = get_ts_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date, FreqCode("W"))
-                        buy_flag = buy(security_point_data, 20, 55, 24)
-                        if buy_flag is True:
-                            Result(db_conn).insert_strategy_result_data(ts_code, ts_code, "stock_smooth_macd", "W", "B", date_now)
                     except Exception as e:
                         Result(db_conn).store_failed_message(ts_code, "stock_smooth_macd", str(e), date_now)
     except Exception as e:
