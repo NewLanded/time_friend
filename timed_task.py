@@ -3,7 +3,7 @@ import time
 from logging import handlers
 
 import schedule
-from strategy.buy import future_smooth_macd, stock_smooth_macd
+from strategy.buy import future_smooth_macd, stock_smooth_macd, future_smooth_macd_pre, stock_smooth_macd_pre
 
 logger = logging.getLogger('/home/stock/app/time_friend/timed_task.log')
 logger.setLevel(logging.INFO)
@@ -24,6 +24,13 @@ def stock_job():
         logger.error('error stock_smooth_macd, error = {0}'.format(str(e)))
     logger.info('finished stock_smooth_macd')
 
+    logger.info('starting stock_smooth_macd_pre')
+    try:
+        stock_smooth_macd_pre.start()
+    except Exception as e:
+        logger.error('error stock_smooth_macd_pre, error = {0}'.format(str(e)))
+    logger.info('finished stock_smooth_macd_pre')
+
 
 def future_job():
     logger.info('starting future_smooth_macd')
@@ -33,10 +40,17 @@ def future_job():
         logger.error('error future_smooth_macd, error = {0}'.format(str(e)))
     logger.info('finished future_smooth_macd')
 
+    logger.info('starting future_smooth_macd_pre')
+    try:
+        future_smooth_macd_pre.start()
+    except Exception as e:
+        logger.error('error future_smooth_macd_pre, error = {0}'.format(str(e)))
+    logger.info('finished future_smooth_macd_pre')
+
 
 def run():
     schedule.every().day.at("19:50").do(stock_job)
-    schedule.every().day.at("21:20").do(future_job)
+    schedule.every().day.at("21:30").do(future_job)
 
 
 if __name__ == "__main__":
