@@ -118,7 +118,7 @@ def start(date_now=None):
             start_date, end_date = date_now - datetime.timedelta(days=100), date_now
             ts_code_list = BasicInfo(db_conn).get_active_ts_code(date_now)
             for ts_code in ts_code_list:
-                buy_flag = False
+                # buy_flag = False
                 try:
                     security_point_data = get_ts_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date,
                                                                                        FreqCode("D"))
@@ -129,16 +129,16 @@ def start(date_now=None):
                 except Exception as e:
                     Result(db_conn).store_failed_message(ts_code, "future_smooth_macd", str(e), date_now)
 
-                if buy_flag is not True:
-                    try:
-                        security_point_data = get_ts_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date,
-                                                                                           FreqCode("D"))
-                        # 使用 玻璃, datetime.date(2021, 4, 13)为结束日, 20天数据, 计算出来标准差为1.5, hist最大值是4
-                        buy_flag = buy_pre(security_point_data, 20, 5, 2.5)
-                        if buy_flag is True:
-                            Result(db_conn).insert_strategy_result_data(ts_code, ts_code, "future_smooth_macd_pre", "D", "B", date_now)
-                    except Exception as e:
-                        Result(db_conn).store_failed_message(ts_code, "future_smooth_macd_pre", str(e), date_now)
+                # if buy_flag is not True:
+                #     try:
+                #         security_point_data = get_ts_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date,
+                #                                                                            FreqCode("D"))
+                #         # 使用 玻璃, datetime.date(2021, 4, 13)为结束日, 20天数据, 计算出来标准差为1.5, hist最大值是4
+                #         buy_flag = buy_pre(security_point_data, 20, 5, 2.5)
+                #         if buy_flag is True:
+                #             Result(db_conn).insert_strategy_result_data(ts_code, ts_code, "future_smooth_macd_pre", "D", "B", date_now)
+                #     except Exception as e:
+                #         Result(db_conn).store_failed_message(ts_code, "future_smooth_macd_pre", str(e), date_now)
 
             start_date, end_date = date_now - datetime.timedelta(days=365), date_now
             if BasicInfo(db_conn).get_next_trade_day(date_now) != date_now + datetime.timedelta(days=1):
@@ -172,7 +172,6 @@ def start(date_now=None):
                     try:
                         security_point_data = get_main_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date,
                                                                                              FreqCode("M"))
-                        # 指示方向, 月线波动太大, 开仓危险
                         buy_flag = buy_month(security_point_data)
                         if buy_flag is True:
                             Result(db_conn).insert_strategy_result_data(ts_code, "main", "future_smooth_macd", "M", "B", date_now)
@@ -183,7 +182,6 @@ def start(date_now=None):
                         try:
                             security_point_data = get_main_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date,
                                                                                                  FreqCode("M"))
-                            # 指示方向, 月线波动太大, 开仓危险
                             buy_flag = buy_month_pre(security_point_data)
                             if buy_flag is True:
                                 Result(db_conn).insert_strategy_result_data(ts_code, "main", "future_smooth_macd_pre", "M", "B", date_now)
