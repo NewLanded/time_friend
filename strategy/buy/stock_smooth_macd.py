@@ -6,6 +6,7 @@ from util_base.constant import FreqCode
 from util_base.db import get_db_conn
 from util_base.result import Result
 from util_stock.util_data.basic_info import BasicInfo
+from util_stock.util_data.point_data import PointData
 from util_stock.util_module.point_module import get_ts_code_interval_point_data_by_freq_code
 
 
@@ -75,6 +76,20 @@ def buy_pre(security_point_data, data_num, max_hist_value, std_value):
     return False
 
 
+def get_nav_str(db_conn, ts_code, date):
+    basic_info = PointData(db_conn).get_stock_interval_basic_data(ts_code, date)
+    nav = basic_info.loc["total_mv"]
+    if not nav:
+        raise ValueError("未获取到总市值, ts_code={0}, date={1}".format(ts_code, date))
+
+    if nav * 10000 > 50000000000:
+        return "big"
+    elif nav * 10000 < 5000000000:
+        return "small"
+    else:
+        return "normal"
+
+
 def start(date_now=None):
     try:
         db_conn = get_db_conn()
@@ -85,25 +100,27 @@ def start(date_now=None):
             start_date, end_date = date_now - datetime.timedelta(days=3650), date_now
             if BasicInfo(db_conn).get_next_trade_day(date_now).month != date_now.month:
                 for ts_code in ts_code_list:
-                    buy_flag = False
+                    # buy_flag = False
                     try:
                         security_point_data = get_ts_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date,
                                                                                            FreqCode("M"))
                         buy_flag = buy(security_point_data, 20, 55, 24)
                         if buy_flag is True:
-                            Result(db_conn).insert_strategy_result_data(ts_code, ts_code, "stock_smooth_macd", "M", "B", date_now)
+                            nav_str = get_nav_str(db_conn, ts_code, date_now)
+                            Result(db_conn).insert_strategy_result_data(ts_code, ts_code, "stock_smooth_macd_" + nav_str, "M", "B", date_now)
                     except Exception as e:
                         Result(db_conn).store_failed_message(ts_code, "stock_smooth_macd", str(e), date_now)
 
-                    if buy_flag is not True:
-                        try:
-                            security_point_data = get_ts_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date,
-                                                                                               FreqCode("M"))
-                            buy_flag = buy_pre(security_point_data, 20, 55, 24)
-                            if buy_flag is True:
-                                Result(db_conn).insert_strategy_result_data(ts_code, ts_code, "stock_smooth_macd_pre", "M", "B", date_now)
-                        except Exception as e:
-                            Result(db_conn).store_failed_message(ts_code, "stock_smooth_macd_pre", str(e), date_now)
+                    # if buy_flag is not True:
+                    try:
+                        security_point_data = get_ts_code_interval_point_data_by_freq_code(db_conn, ts_code, start_date, end_date,
+                                                                                           FreqCode("M"))
+                        buy_flag = buy_pre(security_point_data, 20, 55, 24)
+                        if buy_flag is True:
+                            nav_str = get_nav_str(db_conn, ts_code, date_now)
+                            Result(db_conn).insert_strategy_result_data(ts_code, ts_code, "stock_smooth_macd_pre_" + nav_str, "M", "B", date_now)
+                    except Exception as e:
+                        Result(db_conn).store_failed_message(ts_code, "stock_smooth_macd_pre", str(e), date_now)
 
     except Exception as e:
         pass
