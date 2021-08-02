@@ -118,7 +118,7 @@ def start(date_now=None):
                         buy_flag = buy_pre(security_point_data, 20, 55, 24)
                         if buy_flag is True:
                             nav_str = get_nav_str(db_conn, ts_code, date_now)
-                            Result(db_conn).insert_strategy_result_data(ts_code, ts_code, "stock_smooth_macd_pre_" + nav_str, "M", "B", date_now)
+                            Result(db_conn).insert_strategy_result_data(ts_code, ts_code, "stock_smooth_macd_" + nav_str + "_pre", "M", "B", date_now)
                     except Exception as e:
                         Result(db_conn).store_failed_message(ts_code, "stock_smooth_macd_pre", str(e), date_now)
 
